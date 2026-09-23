@@ -28,6 +28,15 @@ enum Work_Mode
     CurrentCalibration = 91,//电流零点校准模式
 };
 
+enum AngleEstimatorMode
+{
+    LPF = 0, //低通滤波
+    PLL = 1, //PLL锁相环
+    LPF_PLL = 2 //低通滤波+PLL锁相环
+};
+
+
+
 
 class FOC_Motor
 {
@@ -48,19 +57,20 @@ public:
     float _VM; //电机母线电压
 
 
-    Work_Mode work_mode = CurrentCalibration; //电机工作模式
+    Work_Mode work_mode = null_mode; //电机工作模式
     Work_Mode work_mode_last = null_mode; //电机上一次工作模式
-    bool motor_encoder_dir = true;//编码器方向，true为正，false为反
+    bool motor_encoder_dir = true; //编码器方向，true为正，false为反
     bool control_init_flag = false; //电机控制初始化标志
     float theta_zero = 0.0f; //电机零点角度
-    float theta = 0.0f; //电角度
+    float theta = 0.0f; //电角度  
     float theta_no_offic = 0.0f; //电机未偏移的原始弧度
-    float theta_m;//电机原始弧度 偏移过的
-    float theta_m_speed;// 电机原始速度
-    float reg_final;//最终的电机角度 (弧度)
+    float theta_m; //电机原始弧度 偏移过的  
+    float theta_m_speed; // 电机原始速度
+    float filtered_speed;// 速度滤波后的值
+    float reg_final;//最终的电机角度 (弧度) 
     float theta_deg_final ; //最终的电机角度 (角度)
     float Angular_velocity_final;  //最终的角速度
-    float zero_offset;//电机零点偏移角度 (角度) 
+    float zero_offset;//电机零点偏移角度 (角度)  
     float Open_i = 0.0f; //开环模式下的角度
     float Now_Id; //电机实际电流id
     float Now_Iq; //电机实际电流iq
@@ -101,7 +111,6 @@ public:
     float motor_duty_a; // A相占空比(0-1) 
     float motor_duty_b; // B相占空比(0-1) 
     float motor_duty_c; // C相占空比(0-1) 
-    float theta_m_offic;//角度差
 private:
     bool _motor_is_on_last = false; //上次电机使能标志
     float target_speed_last = 0.0f; //上次目标速度
@@ -109,17 +118,15 @@ private:
 
     uint32_t timer_clock_freq_; // 定时器的实际计数时钟频率
     LowpassFilter speed_lpf;     // 速度低通滤波器
-    LowpassFilter error_lpf;     // 误差低通滤波器
     AvgFilter speed_avg;     // 速度平均值滤波器
     
     WaveGenerator _wave_gen; // 波形发生器实例
 
-    bool LPFAndPLL = false; //false 低通滤波 true 是PLL锁相环
+    AngleEstimatorMode Angle_Mode = PLL; //0 低通滤波 1 是PLL锁相环 2是低通滤波+PLL锁相环
     float theta_m_last; //电机上一次弧度
-    // float theta_m_offic;//角度差
-    float theta_m_offic_filtered;// 角度差滤波
+    float theta_m_offic;//角度差
     float theta_av_speed;// 电机平均速度
-    float filtered_speed;// 速度滤波
+    
 
     float _pll_reg_out = 0.0f; //PLL锁相环的输出角度
     float _pll_Angular_velocity = 0.0f; //PLL锁相环的输出角速度

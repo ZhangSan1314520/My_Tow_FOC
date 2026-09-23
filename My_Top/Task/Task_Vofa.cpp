@@ -225,23 +225,27 @@ void Task_VofaTx(void *argument)
 
         // );
 
-        Vofa_SendFireWater_VA(Vofa_huart,16,
+        Vofa_SendFireWater_VA(Vofa_huart,19,
             
             buf[0]._target_Iq,
             buf[0].Now_Iq,
-            3.14f,
+            3.14f, 
             buf[0]._target_Id,
             buf[0].Now_Id,
             3.14f,
-            buf[0]._target_location2,
-            buf[0].theta_deg_final,
+            buf[0].Zero_IA,
+            buf[0].Zero_IB,
+            buf[0].Zero_IC,
             3.14f,
-            buf[0].theta,
+            buf[0]._IA,
+            buf[0]._IB,
+            buf[0]._IC,
+            3.14f,
+            buf[0].theta_zero,
+            buf[0].filtered_speed,
             buf[0].Angular_velocity_final,
-            3.14f,
-            buf[0].Zero_IA_avg,
-            buf[0].Zero_IB_avg,
-            buf[0].Zero_IC_avg,
+            // buf[0].theta_deg_final,
+            buf[0].theta_no_offic,
             3.14f
 
         );

@@ -46,7 +46,7 @@ void FOC_Motor::My_FOC_Motor_Init()
     HAL_TIMEx_PWMN_Start(_motor_config->htim, _motor_config->ch_hin2);
     HAL_TIMEx_PWMN_Start(_motor_config->htim, _motor_config->ch_hin3);
     __HAL_TIM_ENABLE(_motor_config->htim); // 使能定时器外设
-    theta_zero = 5.36f; //电机零点角度
+    theta_zero = 1.125f; //电机零点角度  
     // _phase_current->Zero_IA_avg = 7.816f;
     // _phase_current->Zero_IB_avg = 7.655f;
     // _phase_current->Zero_IC_avg = 7.850f;
@@ -55,8 +55,7 @@ void FOC_Motor::My_FOC_Motor_Init()
     _phase_current->Zero_IB_avg = 7.925f;
     _phase_current->Zero_IC_avg = 7.925f;
 
-    speed_lpf.init(0.7); //速度低通滤波
-    error_lpf.init(0.7); //误差低通滤波
+    speed_lpf.init(0.6); //速度低通滤波
     speed_avg.init(5); //速度均值滤波
 
     _encoder->encoder_init(); //编码器初始化
@@ -137,6 +136,7 @@ void FOC_Motor::Motor_EN(bool en)
     }
 }
 
+
 void FOC_Motor::My_FOC_Motor_Reset()
 {
 
@@ -176,28 +176,48 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
     theta_temp = theta_m * Motor_ExpNum - theta_zero;
     theta = wrap_to_PI(theta_temp);//获取电角度 
 
-    if (LPFAndPLL == false) //低通滤波角度
+    switch (Angle_Mode)
     {
-      //方式1 低通滤波 更新机械角度速度
-      theta_m_offic_temp = theta_m - theta_m_last; 
-      theta_m_last = theta_m; // 更新上一次的机械角度
-      theta_m_offic = wrap_to_PI(theta_m_offic_temp);// 将差值规整到 [-PI, PI) 区间
+    case LPF:
+        //方式1 低通滤波 更新机械角度速度
 
-      theta_m_offic_filtered = error_lpf.filter(theta_m_offic);//对误差角度低通滤波
-      theta_m_speed = theta_m_offic_filtered*FOC_VELOCITY_UP_FREQ_HZ;//speed=路程/t 
-      theta_av_speed = speed_avg.filter(theta_m_speed);//对速度进行平均值滤波
-      filtered_speed = speed_lpf.filter(theta_av_speed);//对速度进行低通滤波
-      reg_final = theta_m; //将机械角度赋值给最终角度
-      theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
-      Angular_velocity_final = filtered_speed;  //将最终速度赋值给最终角速度
-      
-    }else if (LPFAndPLL == true)
-    {
-      // 方式2PLL锁相环 更新PLL锁相环的输出角度和角速度
-      foc_pll_run(theta_m,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
-      reg_final = _pll_reg_out; //将PLL锁相环的输出角度赋值给最终角度
-      theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
-      Angular_velocity_final = _pll_Angular_velocity; //将最终速度赋值给最终角速度
+        theta_m_offic_temp = theta_m - theta_m_last; 
+        theta_m_last = theta_m; // 更新上一次的机械角度
+        theta_m_offic = wrap_to_PI(theta_m_offic_temp);// 将差值规整到 [-PI, PI) 区间
+        theta_m_speed = theta_m_offic*FOC_VELOCITY_UP_FREQ_HZ;//speed = 路程/t 
+        theta_av_speed = speed_avg.filter(theta_m_speed);//对速度进行平均值滤波
+        filtered_speed = speed_lpf.filter(theta_av_speed);//对速度进行低通滤波
+        reg_final = theta_m; //将机械角度赋值给最终角度
+        theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
+        Angular_velocity_final = filtered_speed;  //将最终速度赋值给最终角速度
+
+        break;
+    case PLL:
+        // 方式2PLL锁相环 更新PLL锁相环的输出角度和角速度
+
+        foc_pll_run(theta_m,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
+        reg_final = _pll_reg_out; //将PLL锁相环的输出角度赋值给最终角度
+        theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
+        Angular_velocity_final = _pll_Angular_velocity; //将最终速度赋值给最终角速度
+        break;
+    case LPF_PLL:
+
+        // 方式3 测试低通+PLL锁相环 更新机械角度速度
+        theta_m_offic_temp = theta_m - theta_m_last; 
+        theta_m_last = theta_m; // 更新上一次的机械角度
+        theta_m_offic = wrap_to_PI(theta_m_offic_temp);// 将差值规整到 [-PI, PI) 区间
+        theta_m_speed = theta_m_offic*FOC_VELOCITY_UP_FREQ_HZ;//speed = 路程/t 
+        theta_av_speed = speed_avg.filter(theta_m_speed);//对速度进行平均值滤波
+        filtered_speed = speed_lpf.filter(theta_av_speed);//对速度进行低通滤波
+
+
+        
+        foc_pll_run(theta_m,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
+        reg_final = _pll_reg_out; //将PLL锁相环的输出角度赋值给最终角度
+        theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
+        Angular_velocity_final = _pll_Angular_velocity; //将最终速度赋值给最终角速度
+        
+        break;
     }
 
 }
@@ -206,6 +226,14 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
 
 void FOC_Motor::FOC_Open_Loop1()
 {
+
+    // fast_sin_cos(theta, &_sine, &_cosine);
+    // foc_math.Clarke(_IA,_IB); // ② Clarke 变换
+    // foc_math.Park(_sine,_cosine);   // ③ Park 变换
+    // Now_Iq = foc_math.i_q; 
+    // Now_Id = foc_math.i_d;
+
+
     u_d = 0.0f;
     u_q = 0.3f;
     Open_i += 0.01f;
@@ -219,6 +247,7 @@ void FOC_Motor::FOC_Open_Loop1()
     motor_duty_b = foc_math.duty_b;
     motor_duty_c = foc_math.duty_c;
     setPwm(); // 设置占空比
+
 }
 
 
@@ -226,7 +255,7 @@ void FOC_Motor::FOC_Open_Loop1()
 void FOC_Motor::FOC_Open_Loop2()
 {
     u_d = 0.0f;
-    u_q = 0.30f;
+    u_q = 0.5f;
     fast_sin_cos(theta, &_sine, &_cosine); // 获取正弦和余弦值
     foc_math.IPark(u_d,u_q,_sine,_cosine);
     foc_math.SVPWM();
@@ -235,13 +264,12 @@ void FOC_Motor::FOC_Open_Loop2()
     motor_duty_c = foc_math.duty_c; 
     setPwm(); // 设置占空比 
 }
+ 
 
-
-
+float _error_Id = 0.0f;
+float _error_Iq = 0.0f;
 void FOC_Motor::FOC_Current_Loop()// 电流闭环
 {
-    float _error_Id = 0.0f;
-    float _error_Iq = 0.0f;
 
     uint8_t wave_mode_temp = 0;
     wave_mode_temp = (uint8_t)wave_mode;

@@ -34,14 +34,14 @@ conf：PI参数配置结构体
 void foc_pll_run(float reg_in, float dt, float *reg_out,
                  float *Angular_velocity, PLL_Parameter *conf) {
 
-// volatile float debug_pll_kp = FOC_PLL_KP; 
-// volatile float debug_pll_ki = FOC_PLL_KI; 
-// volatile float debug_pll_wn = PLL_Wn;
-// volatile float debug_PLL_ts = PLL_ts;
-// volatile float debug_pll_Ts_min = Ts_min;
-// volatile float debug_pll_Ts_max = Ts_max;
-// volatile float debug_pll_wn_min = Wn_min;
-// volatile float debug_pll_wn_max = Wn_max;
+volatile float debug_pll_kp = FOC_PLL_KP; 
+volatile float debug_pll_ki = FOC_PLL_KI; 
+volatile float debug_pll_wn = PLL_Wn;
+volatile float debug_PLL_ts = PLL_ts;
+volatile float debug_pll_Ts_min = Ts_min;
+volatile float debug_pll_Ts_max = Ts_max;
+volatile float debug_pll_wn_min = Wn_min;
+volatile float debug_pll_wn_max = Wn_max;
                     
 
     UTILS_NAN_ZERO(*reg_out);//如果输出角度是非数字(NaN)或无穷大置零

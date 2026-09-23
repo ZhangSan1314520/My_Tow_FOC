@@ -15,6 +15,7 @@ static void fill_telem(motor_telem_t *dst, FOC_Motor *m) // 电机数据填充�
     dst->theta_m_speed = m->theta_m_speed;        //电机原始弧度速度
     dst->theta_deg_final = m->theta_deg_final;        //最终的电机角度 (度)
     dst->reg_final = m->reg_final;              //最终的电机角度 (弧度)
+    dst->filtered_speed = m->filtered_speed; //滤波后的速度
     dst->Angular_velocity_final = m->Angular_velocity_final; //最终的角速度
     dst->Now_Id = m->Now_Id; //实际Id
     dst->Now_Iq = m->Now_Iq; //实际Iq
@@ -44,8 +45,6 @@ static void fill_telem(motor_telem_t *dst, FOC_Motor *m) // 电机数据填充�
     dst->Zero_IB_avg = m->_phase_current->Zero_IB_avg;
     dst->Zero_IC_avg = m->_phase_current->Zero_IC_avg;
 
-    //laji
-    dst->theta_m_offic = m->theta_m_offic; //电机原始弧度偏移角度
 
 }
 

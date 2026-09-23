@@ -7,6 +7,15 @@ uint8_t My_Tim::_num = 0;
 My_Tim M1_TIM(&M1);
 My_Tim M2_TIM(&M2);
 
+
+static inline uint32_t get_tick_in_period(TIM_HandleTypeDef *htim) // 获取当前PWM周期内的计数
+{
+    return ((htim->Instance->CR1 & 0x10) == 0x00000000U)
+               ? __HAL_TIM_GET_COUNTER(htim)                                       // 向上计数时，返回当前计数(0-ARR)
+               : __HAL_TIM_GET_AUTORELOAD(htim) * 2 - __HAL_TIM_GET_COUNTER(htim); // 向下计数时,返回(ARR+x)
+}
+
+
 void My_Tim::init()
 {
     uint16_t ARR = __HAL_TIM_GET_AUTORELOAD(_motor->_motor_config->htim);// 获取定时器ARR寄存器的值
@@ -14,11 +23,11 @@ void My_Tim::init()
     __HAL_TIM_SET_COMPARE(_motor->_motor_config->htim, TIM_CHANNEL_5, ARR*0.80f); // 设置占空比为80% 控制电流采样触发时机 和回调函数无关
     _motor->_motor_config->htim->PeriodElapsedCallback = My_Tim_Callback;  // 设置定时器周期结束回调函数
     _motor->_motor_config->htim->OC_DelayElapsedCallback = My_Tim_OC_Callback;// PWM的模式的比较匹配回调函数
-    HAL_TIM_OC_Start_IT(_motor->_motor_config->htim, TIM_CHANNEL_5); //启动定时器比较中断
     HAL_TIM_Base_Start_IT(_motor->_motor_config->htim); //启动定时器周期中断和启动定时器计数
     __HAL_TIM_ENABLE_IT(_motor->_motor_config->htim, TIM_IT_CC4); //只打开中断，不启动定时器
     __HAL_TIM_ENABLE(_motor->_motor_config->htim); // 启动定时器
     HAL_TIM_PWM_Start(_motor->_motor_config->htim, TIM_CHANNEL_5);// 启动 TIM1_CH5 用于产生ADC触发事件 ????
+    __HAL_TIM_ENABLE(_motor->_motor_config->htim);  // 启动定时器
 }
 
 // ---- 静态桥接：按 htim 找到实例，转发 ----
@@ -38,12 +47,12 @@ void My_Tim::My_Tim_OC_Callback(TIM_HandleTypeDef *htim)
 
 
 
-// ---- 真正的周期处理：原 My_Tim_Callback 内容，数组循环换成 _motor ----
 void My_Tim::Tim_Callback()
 {
     TIM_HandleTypeDef* htim = _motor->_motor_config->htim; // 定时器句柄
     FOC_Motor* m = _motor; // 指向当前电机句柄
     if ((htim->Instance->CR1 & 0x10) != 0x00U) return; // 非向上计数不执行
+    // 向下计数时，请求编码器位置信息 
     _count = (_count % 16000) + 1;
 
 
@@ -101,9 +110,7 @@ void My_Tim::Tim_Callback()
 }
 
 // ---- 真正的 OC 处理
-uint16_t laji1 = 0;
-uint16_t laji2 = 0;
-uint16_t laji3 = 0;
+
 void My_Tim::OC_Callback()
 {
     _oc_count = (_oc_count % 16000) + 1;

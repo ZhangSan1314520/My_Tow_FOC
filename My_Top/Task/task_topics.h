@@ -9,10 +9,11 @@ typedef struct {
     float theta_m_speed;        //电机原始角速度(弧度)
     float theta_deg_final;       //最终的电机角度 (度)
     float reg_final;             //最终的电机角度 (弧度)
+    float filtered_speed;         //低通滤波后的角速度
     float Angular_velocity_final; //最终的角速度
     
     float Now_Id;//电机实际电流id
-    float Now_Iq;//电机实际电流iq
+    float Now_Iq;//电机实际电流iq 
 
     float u_d; // 输出d轴电压 为0最大扭矩
     float u_q; // 输出q轴电压
