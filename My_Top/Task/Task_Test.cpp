@@ -91,9 +91,7 @@ void Task_Test(void *argument)
     // test_laji();
     while (1)
     {
-        // printf("laji:%d\r\n",M1.laji);
-        M1.laji+=2;
-
+        // printf("laji:%d %d\r\n",M1.laji,M2.laji);
         vTaskDelay(pdMS_TO_TICKS(500));
     }
 }

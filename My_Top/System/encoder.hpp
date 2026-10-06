@@ -67,6 +67,7 @@ private:
     static uint8_t _crc_calc(uint8_t *buf, uint16_t len); // CRC 计算（对前 len 字节异或）
     static void My_Encode_Callback(UART_HandleTypeDef *huart,uint16_t Size); //给HAL用的 静态桥接函数
     void Encode_Callback(UART_HandleTypeDef *huart,uint16_t Size); //真正处理函数
+    static void My_Encode_ErrorCallback(UART_HandleTypeDef *huart); // 通信错误恢复
     encoder_data_t encoder;
     const MotorPWM_Config *motor_config;
 

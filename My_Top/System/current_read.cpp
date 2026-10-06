@@ -81,8 +81,8 @@ void PhaseCurrent::Update_Current() // 更新电机电流
     // IA_filtered = filter_ia.filter(IA); // 对零点偏移电流进行低通滤波
     // IB_filtered = filter_ib.filter(IB); // 对零点偏移电流进行低通滤波
     // IC_filtered = filter_ic.filter(IC); // 对零点偏移电流进行低通滤波
-    IA_filtered = Zero_Offset_IA;
-    IB_filtered = Zero_Offset_IB;
+    IA_filtered = Zero_Offset_IB;
+    IB_filtered = Zero_Offset_IA;
     IC_filtered = Zero_Offset_IC;
 
 }

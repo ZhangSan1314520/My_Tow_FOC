@@ -47,6 +47,9 @@ void My_Tim::My_Tim_OC_Callback(TIM_HandleTypeDef *htim)
 
 
 
+uint32_t start_time = 0; //记录开始时间
+uint32_t end_time = 0;   //记录结束时间
+
 void My_Tim::Tim_Callback()
 {
     TIM_HandleTypeDef* htim = _motor->_motor_config->htim; // 定时器句柄
@@ -60,16 +63,20 @@ void My_Tim::Tim_Callback()
 
     if (_count % FOC_VELOCITY_UP_FREQ_DIV == 0)
     {
-        m->Update_Speed_Angle_LPFAndPLL();
+        // start_time = HAL_System::get_tick_us(); //记录开始时间
+        m->Update_Speed_Angle_LPFAndPLL();//耗时32us
+        // end_time = HAL_System::get_tick_us(); // 记录结束时间
+        // m->laji = (float)(end_time - start_time);  // 计算时间差
+        
     }
 
     switch (m->work_mode) 
     { 
         case open_loop: // 开环控制
-            if (_count % FOC_Open_Loop_FREQ_DIV == 0) 
+            if (_count % FOC_Open_Loop_FREQ_DIV == 0)
             {
                 // start_time = HAL_System::get_tick_us(); //记录开始时间
-                m->FOC_Open_Loop2(); //耗时8us
+                m->FOC_Open_Loop2(); //耗时9us
                 // end_time = HAL_System::get_tick_us(); // 记录结束时间
                 // m->laji = (float)(end_time - start_time);  // 计算时间差
             }
@@ -79,7 +86,7 @@ void My_Tim::Tim_Callback()
             if (_count % FOC_VELOCITY_LOOP_FREQ_DIV == 0)
             {
                 // start_time = HAL_System::get_tick_us(); //记录开始时间
-                m->FOC_Speed_Loop();//耗时
+                m->FOC_Speed_Loop();//耗时2us
                 // end_time = HAL_System::get_tick_us(); // 记录结束时间
                 // m->laji = (float)(end_time - start_time);  // 计算时间差
             }
@@ -89,13 +96,13 @@ void My_Tim::Tim_Callback()
             if (_count % FOC_POSITION_LOOP_FREQ_DIV == 0)
             {
                 // start_time = HAL_System::get_tick_us(); //记录开始时间
-                m->FOC_Location_Loop();//耗时
+                m->FOC_Location_Loop();//耗时9us
                 // end_time = HAL_System::get_tick_us(); // 记录结束时间
                 // m->laji = (float)(end_time - start_time);  // 计算时间差
             }
-            if (_count % FOC_VELOCITY_LOOP_FREQ_DIV == 0)
+            if ( (!m->use_lqr_position) &&(_count % FOC_VELOCITY_LOOP_FREQ_DIV == 0) )
             {
-                m->FOC_Speed_Loop();//耗时
+                m->FOC_Speed_Loop();//耗时2us
             }
             break;
 
@@ -125,7 +132,7 @@ void My_Tim::OC_Callback()
         if (m->work_mode == Ia_loop || m->work_mode == speed_loop || m->work_mode == position_loop)
         {
             // uint32_t start_time = HAL_System::get_tick_us();
-            m->FOC_Current_Loop();
+            m->FOC_Current_Loop(); //耗时12us  
             // m->laji = (float)(HAL_System::get_tick_us() - start_time);
         }
     }

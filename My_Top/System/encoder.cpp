@@ -23,8 +23,12 @@ void Encoder::encoder_init()
         //UART 没有DMA句柄
         Error_Handler();
     }
-    motor_config->huart->RxEventCallback =My_Encode_Callback;
-    HAL_UARTEx_ReceiveToIdle_DMA(motor_config->huart,encoder.rx_buf,sizeof(encoder.rx_buf)); //开启接收中断
+    motor_config->huart->RxEventCallback =My_Encode_Callback; // 绑定接收回调函数
+    motor_config->huart->ErrorCallback = My_Encode_ErrorCallback; // 绑定错误回调函数
+    if(HAL_UARTEx_ReceiveToIdle_DMA(motor_config->huart,encoder.rx_buf,sizeof(encoder.rx_buf)) != HAL_OK)//开启接收中断
+    {
+        Error_Handler();
+    }
     __HAL_DMA_DISABLE_IT(motor_config->huart->hdmarx,DMA_IT_HT);//禁止半传输中断
 }
 
@@ -40,6 +44,37 @@ void Encoder::My_Encode_Callback(UART_HandleTypeDef *huart,uint16_t Size) //转�
         }
     }
 }
+
+
+void Encoder::My_Encode_ErrorCallback(UART_HandleTypeDef *huart)
+{
+    for(uint8_t i=0;i<encoder_num;i++)
+    {
+        Encoder *e = encoder_list[i];
+        if(e == nullptr || e->motor_config->huart != huart) continue;
+        e->encoder.error = 3; // UART/DMA 通信 错误
+
+        //HAL_UART_STATE_READY 接收模块空闲，可以启动新的接收
+        if(huart->RxState != HAL_UART_STATE_READY) return;  // 接收仍在运行，不重启
+        // 清除错误标志位，接收溢出 / 噪声错误 / 帧错误 / 奇偶校验错误
+        __HAL_UART_CLEAR_FLAG(huart,UART_CLEAR_OREF | UART_CLEAR_NEF | UART_CLEAR_FEF | UART_CLEAR_PEF);
+        __HAL_UART_SEND_REQ(huart,UART_RXDATA_FLUSH_REQUEST); // 丢弃残留数据
+
+        // 重新启动接收
+        if(HAL_UARTEx_ReceiveToIdle_DMA(huart,e->encoder.rx_buf,sizeof(e->encoder.rx_buf)) == HAL_OK)
+        {
+            __HAL_DMA_DISABLE_IT(huart->hdmarx,DMA_IT_HT);
+        }
+        else
+        {
+            e->encoder.error = 4; // 接收重启失败
+        }
+
+        return;
+    }
+}
+
+
 
 void Encoder::Encode_Callback(UART_HandleTypeDef *huart,uint16_t Size)
 {      

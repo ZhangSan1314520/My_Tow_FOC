@@ -11,7 +11,7 @@ public:
         }
     void init();   // 初始化定时器并设置回调函数
 
-    //静态变量(无My_Tim* this,TIM_HandleTypeDef *htim)
+    //静态变量(无My_Tim* this,TIM_HandleTypeDef *htim) 
     static void My_Tim_Callback(TIM_HandleTypeDef *htim);     // 周期中断：静态桥接（给 HAL 用）
     static void My_Tim_OC_Callback(TIM_HandleTypeDef *htim);  // OC 匹配中断：静态桥接（给 HAL 用）
 

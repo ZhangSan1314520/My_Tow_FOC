@@ -6,9 +6,9 @@ PhaseCurrent phaseCurrent1(&M1_PWM); //电流对象
 
 PID pid_iq_M1(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Iq环pid
 PID pid_id_M1(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Id环pid
-PID pid_spd_M1(0.0f,0.0f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,1,-1); //速度环pid
-PID pid_loc_M1(0.0f,0.0f,0.0f,1.0f/FOC_POSITION_LOOP_FREQ_HZ,0.8,10,-10); //位置环pid
-LQR lqr_M1(0.0f,0.0f,10,-10); //位置环lqr
+PID pid_spd_M1(0.16f,1.4f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,2.5,-2.5); //速度环pid
+PID pid_loc_M1(16.0f,0.0f,0.0f,1.0f/FOC_POSITION_LOOP_FREQ_HZ,0.8,10,-10); //位置环pid
+LQR lqr_M1(0.0f,0.0f,2.5,-2.5); //位置环lqr
 
 FOC_Motor M1(&M1_PWM, &encoder1,&phaseCurrent1,&pid_iq_M1,&pid_id_M1, &pid_spd_M1, &pid_loc_M1,&lqr_M1); //电机1
 
@@ -20,9 +20,9 @@ PhaseCurrent phaseCurrent2(&M2_PWM); //电流对象
 
 PID pid_iq_M2(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Iq环pid
 PID pid_id_M2(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Id环pid
-PID pid_spd_M2(0.0f,0.0f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,1,-1); //速度环pid
-PID pid_loc_M2(0.0f,0.0f,0.0f,1.0f/FOC_POSITION_LOOP_FREQ_HZ,0.8,10,-10); //位置环pid
-LQR lqr_M2(0.0f,0.0f,10,-10); //位置环lqr 
+PID pid_spd_M2(0.16f,1.4f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,2.5,-2.5); //速度环pid
+PID pid_loc_M2(16.0f,0.0f,0.0f,1.0f/FOC_POSITION_LOOP_FREQ_HZ,0.8,10,-10); //位置环pid
+LQR lqr_M2(0.0f,0.0f,2.5,-2.5); //位置环lqr
 
 FOC_Motor M2(&M2_PWM, &encoder2,&phaseCurrent2,&pid_iq_M2,&pid_id_M2, &pid_spd_M2, &pid_loc_M2,&lqr_M2); //电机2
 
@@ -46,7 +46,7 @@ void FOC_Motor::My_FOC_Motor_Init()
     HAL_TIMEx_PWMN_Start(_motor_config->htim, _motor_config->ch_hin2);
     HAL_TIMEx_PWMN_Start(_motor_config->htim, _motor_config->ch_hin3);
     __HAL_TIM_ENABLE(_motor_config->htim); // 使能定时器外设
-    theta_zero = 1.125f; //电机零点角度  
+
     // _phase_current->Zero_IA_avg = 7.816f;
     // _phase_current->Zero_IB_avg = 7.655f;
     // _phase_current->Zero_IC_avg = 7.850f;
@@ -54,6 +54,8 @@ void FOC_Motor::My_FOC_Motor_Init()
     _phase_current->Zero_IA_avg = 7.98f;
     _phase_current->Zero_IB_avg = 7.925f;
     _phase_current->Zero_IC_avg = 7.925f;
+    // theta_zero = 5.34f; //电机零点角度 
+    theta_zero = 3.22f; //电机零点角度 
 
     speed_lpf.init(0.6); //速度低通滤波
     speed_avg.init(5); //速度均值滤波
@@ -87,7 +89,6 @@ void FOC_Motor::setPwm()
     __HAL_TIM_SET_COMPARE(_motor_config->htim, _motor_config->ch_hin2, ccr1);
     __HAL_TIM_SET_COMPARE(_motor_config->htim, _motor_config->ch_hin3, ccr3); // 设置占空比
     
-
 }
 
 void FOC_Motor::Current_Auto_Calibration(bool x) //电流自动校准使能
@@ -104,10 +105,11 @@ void FOC_Motor::Encoder_Calibration() //编码器校准
     u_d = 0.3f;
     _sine = 0.0f;
     _cosine = 1.0f;
+    // fast_sin_cos(deg2rad(0), &_sine, &_cosine); // 获取正弦和余弦值
     foc_math.IPark(u_d,u_q,_sine,_cosine);
     foc_math.SVPWM();
     motor_duty_a = foc_math.duty_a; // 占空比
-    motor_duty_b = foc_math.duty_b;
+    motor_duty_b = foc_math.duty_b; 
     motor_duty_c = foc_math.duty_c;
     setPwm(); // 设置占空比
 
@@ -178,7 +180,7 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
 
     switch (Angle_Mode)
     {
-    case LPF:
+    case LPF://耗时20us
         //方式1 低通滤波 更新机械角度速度
 
         theta_m_offic_temp = theta_m - theta_m_last; 
@@ -192,7 +194,7 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
         Angular_velocity_final = filtered_speed;  //将最终速度赋值给最终角速度
 
         break;
-    case PLL:
+    case PLL: //耗时32us
         // 方式2PLL锁相环 更新PLL锁相环的输出角度和角速度
 
         foc_pll_run(theta_m,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
@@ -200,7 +202,7 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
         theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
         Angular_velocity_final = _pll_Angular_velocity; //将最终速度赋值给最终角速度
         break;
-    case LPF_PLL:
+    case LPF_PLL://耗时37us
 
         // 方式3 测试低通+PLL锁相环 更新机械角度速度
         theta_m_offic_temp = theta_m - theta_m_last; 
@@ -255,7 +257,7 @@ void FOC_Motor::FOC_Open_Loop1()
 void FOC_Motor::FOC_Open_Loop2()
 {
     u_d = 0.0f;
-    u_q = 0.5f;
+    u_q = 0.4f;
     fast_sin_cos(theta, &_sine, &_cosine); // 获取正弦和余弦值
     foc_math.IPark(u_d,u_q,_sine,_cosine);
     foc_math.SVPWM();
@@ -264,13 +266,13 @@ void FOC_Motor::FOC_Open_Loop2()
     motor_duty_c = foc_math.duty_c; 
     setPwm(); // 设置占空比 
 }
- 
+
 
 float _error_Id = 0.0f;
 float _error_Iq = 0.0f;
-void FOC_Motor::FOC_Current_Loop()// 电流闭环
+void FOC_Motor::FOC_Current_Loop()// PID电流闭环
 {
-
+    //2A电流条件最高能到Iq(max) = 3.45 Id(max) = 3.1 
     uint8_t wave_mode_temp = 0;
     wave_mode_temp = (uint8_t)wave_mode;
     if (work_mode == Ia_loop)
@@ -313,7 +315,7 @@ void FOC_Motor::FOC_Current_Loop()// 电流闭环
 
 
 
-void FOC_Motor::FOC_Speed_Loop(void) //速度环
+void FOC_Motor::FOC_Speed_Loop(void) //PID速度环
 {
     float _error_speed = 0.0f;
 
@@ -322,7 +324,7 @@ void FOC_Motor::FOC_Speed_Loop(void) //速度环
     
     if( (work_mode == speed_loop) && (wave_mode_temp==1 ||wave_mode_temp ==2) )
     {
-        set_wave_mode(wave_mode_temp, FOC_VELOCITY_LOOP_FREQ_HZ, 5.0f, 0.0f);
+        set_wave_mode(wave_mode_temp, FOC_VELOCITY_LOOP_FREQ_HZ*4, 2.0f, 0.0f);//4s一个周期
         _target_speed = _wave_gen.next(1);//cnt计数每次加1
     }
 
@@ -332,7 +334,7 @@ void FOC_Motor::FOC_Speed_Loop(void) //速度环
 }
 
 
-void FOC_Motor::FOC_Location_Loop(void) //位置环
+void FOC_Motor::FOC_Location_Loop(void) //PID位置环
 {
     float error_loc = 0.0f;
 
@@ -341,13 +343,44 @@ void FOC_Motor::FOC_Location_Loop(void) //位置环
     
     if( (work_mode == position_loop) && (wave_mode_temp==1 ||wave_mode_temp ==2)  )
     {
-        set_wave_mode(wave_mode_temp, FOC_POSITION_LOOP_FREQ_HZ, 90.0f, 20.0f);
+        set_wave_mode(wave_mode_temp, FOC_POSITION_LOOP_FREQ_HZ*4, 80.0f, 0.0f);//4s一个周期
         _target_location2 = _wave_gen.next(1);//cnt计数每次加1
     }
 
     error_loc = wrap_to_PI(deg2rad(_target_location2) - reg_final); //计算位置误差
+    error_loc = constraint_value(error_loc, -deg2rad(15.0f), deg2rad(15.0f)); //限制误差范围在[-15°, 15°]
     _target_speed = _pid_loc->update(error_loc); //传入实际误差值
 }
+
+
+
+void FOC_Motor::FOC_Location_Loop()
+{
+    uint8_t wave_mode_temp = (uint8_t)wave_mode;
+
+    if(work_mode == position_loop && (wave_mode_temp == 1 || wave_mode_temp == 2))
+    {
+        set_wave_mode(wave_mode_temp, FOC_POSITION_LOOP_FREQ_HZ*4, 80.0f, 0.0f);
+        _target_location2 = _wave_gen.next(1);
+    }
+
+    float error_loc = wrap_to_PI(deg2rad(_target_location2) - reg_final);
+    error_loc = constraint_value(error_loc, -deg2rad(15.0f), deg2rad(15.0f));
+
+    if(use_lqr_position)
+    {
+        _lqr->_max = _pid_spd->_max; // 沿用原电流限幅
+        _lqr->_min = _pid_spd->_min;
+        _target_Id = 0.0f;
+        _target_Iq = _lqr->update(error_loc, -Angular_velocity_final);
+        return;
+    }
+
+    _target_speed = _pid_loc->update(error_loc);
+}
+
+
+
 
 
 

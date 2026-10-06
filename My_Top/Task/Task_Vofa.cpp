@@ -175,15 +175,15 @@ void Task_VofaRx(void *argument)
                 vofa_update_if_changed(&Vafa_Target, 1, &m->_target_Id, NULL); // 
                 break;                
             case speed_loop: // 速度闭环模式
-                vofa_update_if_changed(&Vafa_Speed,  0, &m->_pid_spd->_kp, m);//速度PID
-                vofa_update_if_changed(&Vafa_Speed,  1, &m->_pid_spd->_ki, m);
-                vofa_update_if_changed(&Vafa_Speed,  2, &m->_pid_spd->_kd, m);
+                vofa_update_if_changed(&Vafa_Speed,  0, &m->_pid_spd->_kp, NULL);//速度PID
+                vofa_update_if_changed(&Vafa_Speed,  1, &m->_pid_spd->_ki, NULL);//???? 清零积分项
+                vofa_update_if_changed(&Vafa_Speed,  2, &m->_pid_spd->_kd, NULL);
                 vofa_update_if_changed(&Vafa_Target,  2, &m->_target_speed, NULL); //目标速度
                 break;
             case position_loop: // 位置闭环模式
-                vofa_update_if_changed(&Vafa_Location, 0, &m->_pid_loc->_kp, m);//位置PID
-                vofa_update_if_changed(&Vafa_Location, 1, &m->_pid_loc->_ki, m);
-                vofa_update_if_changed(&Vafa_Location, 2, &m->_pid_loc->_kd, m);
+                vofa_update_if_changed(&Vafa_Location, 0, &m->_pid_loc->_kp, NULL);//位置PID
+                vofa_update_if_changed(&Vafa_Location, 1, &m->_pid_loc->_ki, NULL);
+                vofa_update_if_changed(&Vafa_Location, 2, &m->_pid_loc->_kd, NULL);
                 vofa_update_if_changed(&Vafa_Target,  4, &m->_target_location2, NULL); //目标位置-180°~+180°
                 vofa_update_if_changed(&Vafa_Speed,  0, &m->_pid_spd->_kp, m);//速度PID
                 vofa_update_if_changed(&Vafa_Speed,  1, &m->_pid_spd->_ki, m);
@@ -225,13 +225,19 @@ void Task_VofaTx(void *argument)
 
         // );
 
-        Vofa_SendFireWater_VA(Vofa_huart,19,
+        Vofa_SendFireWater_VA(Vofa_huart,25,
             
             buf[0]._target_Iq,
             buf[0].Now_Iq,
             3.14f, 
             buf[0]._target_Id,
             buf[0].Now_Id,
+            3.14f,
+            buf[0]._target_speed,
+            buf[0].Angular_velocity_final,
+            3.14f,
+            buf[0]._target_location2,
+            buf[0].theta_deg_final,
             3.14f,
             buf[0].Zero_IA,
             buf[0].Zero_IB,
@@ -244,7 +250,6 @@ void Task_VofaTx(void *argument)
             buf[0].theta_zero,
             buf[0].filtered_speed,
             buf[0].Angular_velocity_final,
-            // buf[0].theta_deg_final,
             buf[0].theta_no_offic,
             3.14f
 

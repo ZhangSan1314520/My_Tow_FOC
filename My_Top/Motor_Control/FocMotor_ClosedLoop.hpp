@@ -57,10 +57,11 @@ public:
     float _VM; //电机母线电压
 
 
-    Work_Mode work_mode = null_mode; //电机工作模式
+    Work_Mode work_mode = EncoderCalibration; //电机工作模式
     Work_Mode work_mode_last = null_mode; //电机上一次工作模式
     bool motor_encoder_dir = true; //编码器方向，true为正，false为反
     bool control_init_flag = false; //电机控制初始化标志
+    bool use_lqr_position = false; //是否使用LQR位置环
     float theta_zero = 0.0f; //电机零点角度
     float theta = 0.0f; //电角度  
     float theta_no_offic = 0.0f; //电机未偏移的原始弧度
@@ -122,7 +123,7 @@ private:
     
     WaveGenerator _wave_gen; // 波形发生器实例
 
-    AngleEstimatorMode Angle_Mode = PLL; //0 低通滤波 1 是PLL锁相环 2是低通滤波+PLL锁相环
+    AngleEstimatorMode Angle_Mode = PLL; //LPF 低通滤波  PLL是PLL锁相环 LPF_PLL是低通滤波+PLL锁相环
     float theta_m_last; //电机上一次弧度
     float theta_m_offic;//角度差
     float theta_av_speed;// 电机平均速度

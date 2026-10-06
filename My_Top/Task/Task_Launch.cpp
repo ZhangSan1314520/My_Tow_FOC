@@ -42,7 +42,7 @@ void MC_TaskStart(void)
     xTaskCreate(Task_CLI, "Task_CLI", 256, NULL, osPriorityNormal, &CLIHandle); //CLI任务
     xTaskCreate(Task_DroneCAN, "Task_DroneCAN", 256, NULL, osPriorityNormal, &DroneCANHandle); //DroneCAN 任务
     xTaskCreate(Task_MotorPublish, "MotorPub", 256, NULL, osPriorityLow4, &MotorPubHandle); //uorb发布任务
-    xTaskCreate(Task_VofaTx,"VofaTx",  256, NULL, osPriorityLow4, &VofaTxHandle); //Vofa发送任务
+    xTaskCreate(Task_VofaTx,"VofaTx",  512, NULL, osPriorityLow4, &VofaTxHandle); //Vofa发送任务
 
     xTaskCreate(Task_Test, "Test", 256, NULL, osPriorityLow, &TestHandle); //测试任务 
 }
