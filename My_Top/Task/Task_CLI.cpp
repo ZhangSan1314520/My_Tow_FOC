@@ -23,14 +23,14 @@ void Task_CLI(void *argument)
     CLI_Module::add_command_to_all("set_zero", "set_zero [idx] 单位°", true, NULL, set_zero);//设置零点
     CLI_Module::add_command_to_all("set_pos", "set_pos [idx] [angle] 单位 °", true, NULL, set_pos);//设置目标位置 范围[-180,180]
     CLI_Module::add_command_to_all("set_speed", "set_speed [idx] [velocity] 单位 rad/s", true, NULL, set_speed);//设置目标速度
-    // CLI_Module::add_command_to_all("set_mode", "set_mode [idx] <mode>取值:speed pos open_loop", true, NULL, set_mode); //切换工作模式
+    CLI_Module::add_command_to_all("set_mode", "set_mode [idx] <mode>取值:0-4 / 90 91", true, NULL, set_mode); //切换工作模式
     CLI_Module::add_command_to_all("set_pid_id", "set_pid_id [idx] [kp] [ki] [kd]", true, NULL, set_pid_id); //设置PID 电流环id
     CLI_Module::add_command_to_all("set_pid_iq", "set_pid_iq [idx] [kp] [ki] [kd]", true, NULL, set_pid_iq); //设置PID 电流环iq    
     CLI_Module::add_command_to_all("set_pid_v", "set_pid_v [idx] [kp] [ki] [kd]", true, NULL, set_pid_v); //设置PID 速度环  
     CLI_Module::add_command_to_all("set_pid_p", "set_pid_p [idx] [kp] [ki] [kd]", true, NULL, set_pid_p); //设置PID 位置环     
     CLI_Module::add_command_to_all("set_wave", "set_wave [idx] [int]", true, NULL, set_wave);//设置目标波形
 
-    // CLI_Module::add_command_to_all("get_mode", "get_mode [idx] ", true, NULL, get_mode);//获取当前工作模式 
+    CLI_Module::add_command_to_all("get_mode", "get_mode [idx] ", true, NULL, get_mode);//获取当前工作模式 
     
 
     CLI_Module::start_all();  // 启动所有CLI

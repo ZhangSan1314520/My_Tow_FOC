@@ -62,7 +62,7 @@ public:
     bool motor_encoder_dir = true; //编码器方向，true为正，false为反
     bool control_init_flag = false; //电机控制初始化标志
     bool use_lqr_position = false; //是否使用LQR位置环
-    float theta_zero = 0.0f; //电机零点角度
+    float theta_zero = 0.0f; //电机零点角度(硬件)
     float theta = 0.0f; //电角度  
     float theta_no_offic = 0.0f; //电机未偏移的原始弧度
     float theta_m; //电机原始弧度 偏移过的  
@@ -71,7 +71,7 @@ public:
     float reg_final;//最终的电机角度 (弧度) 
     float theta_deg_final ; //最终的电机角度 (角度)
     float Angular_velocity_final;  //最终的角速度
-    float zero_offset;//电机零点偏移角度 (角度)  
+    float zero_offset;//电机零点偏移角度 (软件零点角度)  
     float Open_i = 0.0f; //开环模式下的角度
     float Now_Id; //电机实际电流id
     float Now_Iq; //电机实际电流iq

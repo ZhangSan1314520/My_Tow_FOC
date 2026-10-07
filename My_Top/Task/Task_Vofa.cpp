@@ -72,9 +72,6 @@ void vofa_update_mode(Work_Mode *target, Work_Mode default_val , FOC_Motor* moto
         last_mode = new_mode;
         if (motor != NULL)
         {
-            motor->_target_Id = 0.0f;
-            motor->_target_Iq = 0.0f;
-            motor->_target_speed = 0.0f;
             motor->motor_duty_a = 0.0f; // 占空比
             motor->motor_duty_b = 0.0f;
             motor->motor_duty_c = 0.0f;

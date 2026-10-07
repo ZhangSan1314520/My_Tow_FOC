@@ -9,7 +9,7 @@ FOC_Motor* get_motor_by_arg(const char **arg_list, int argc,int *idx_out)
     *idx_out = idx; //返回电机编号
     switch (idx) {
         case 1: return &M1;
-        // case 2: return &M2;
+        case 2: return &M2;
         // case 3: return &M3;
         // case 4: return &M4;
     }
@@ -124,6 +124,7 @@ void set_zero(EmbeddedCli *cli, char *args, void *context) //设置0点单位°
         return;
     }
     m->zero_offset = wrap_to_PI(m->theta_no_offic - deg2rad(temp));
+    m->_target_location2 = temp;//将目标位置设置为当前角度
     printf("电机M%d 设置当前角度为%.2f度\r\n",idx,temp);
 }
 
@@ -212,58 +213,32 @@ void set_wave(EmbeddedCli *cli, char *args, void *context) //设置目标波形
     }
 }
 
-// void set_mode(EmbeddedCli *cli, char *args, void *context) //设置工作模式
-// {
-//     int idx = 0;
-//     char *end;
-//     Work_Mode mode_temp = null_mode;
-//     // 获取CLI实例
-//     CLI_Module *mc = CLI_Module::get_cli_module(cli);
-//     if (mc == NULL) return;
-//     // 解析参数
-//     const char *arg_list[CLI_MODULE_MAX_ARGS_NUM]; //数据存放区 超限只保存前CLI_MODULE_MAX_ARGS_NUM个
-//     int argc = CLI_Module::init_arg_list(arg_list, args);
-//     FOC_Motor *m = get_motor_by_arg(arg_list, argc,&idx); //获取电机对象
-//     if (!m) return;
+void set_mode(EmbeddedCli *cli, char *args, void *context) //设置工作模式
+{
+    int idx = 0;
+    char *end;
+    // 获取CLI实例
+    CLI_Module *mc = CLI_Module::get_cli_module(cli);
+    if (mc == NULL) return;
+    // 解析参数
+    const char *arg_list[CLI_MODULE_MAX_ARGS_NUM]; //数据存放区 超限只保存前CLI_MODULE_MAX_ARGS_NUM个
+    int argc = CLI_Module::init_arg_list(arg_list, args);
+    FOC_Motor *m = get_motor_by_arg(arg_list, argc,&idx); //获取电机对象
+    if (!m) return;
+    uint8_t temp = (uint8_t)strtof(arg_list[2], &end); //将字符串转换为浮点数
+    if(end == arg_list[2]) 
+    {
+        printf("参数格式错误\r\n");
+        return;
+    }
 
-//     if (strcmp(arg_list[2], "speed") == 0) {
-//         mode_temp = speed;
-//     } else if (strcmp(arg_list[2], "pos") == 0) {
-//         mode_temp = position;
-//     } else if (strcmp(arg_list[2], "open_loop") == 0) {
-//         mode_temp = open_loop;
-//     } else if (strcmp(arg_list[2], "calib") == 0) {
-//         mode_temp = EncoderCalibration;
-//     }else {
-//         printf("未知模式\r\n");
-//         return;
-//     }
-//     m->work_mode = mode_temp;
+    m->work_mode = (Work_Mode)(temp);
 
-//     m->My_FOC_Motor_Reset(); //重置电机
+    m->My_FOC_Motor_Reset(); //重置电机
 
-//     printf("电机M%d 工作模式设置%s\r\n",idx,arg_list[2]);
+    printf("电机M%d 工作模式设置%d\r\n",idx,temp);
 
-
-//     if(mode_temp == EncoderCalibration)
-//     {
-//         printf("电机M%d 校准模式：启动开环全速\r\n", idx);
-//         vTaskDelay(pdMS_TO_TICKS(2000));
-
-//         printf("电机M%d 开始 ANLC 校准，保持转动...\r\n", idx);
-//         bool ok = m->_encoder->KTH7111_ANLC_Calibration(60);
-//         m->work_mode = open_loop;//切回开环控制
-//         vTaskDelay(pdMS_TO_TICKS(10));
-//         m->Motor_EN(false);
-//         m->updown_duty = 0.0;//停止电机
-//         if (ok) {
-//             printf("电机M%d ANLC 校准成功！参数已保存至MTP\r\n", idx);
-//         } else {
-//             printf("电机M%d ANLC 校准失败\r\n", idx);
-//         }
-//     }
-
-// }
+}
 
 
 
@@ -396,15 +371,27 @@ void get_mode(EmbeddedCli *cli, char *args, void *context) //获取当前工作�
     Work_Mode temp = m->work_mode;
     switch (temp)
     {
+    case null_mode:
+        printf("电机M%d 当前模式为无模式\r\n",idx);
+        break;        
     case open_loop:
         printf("电机M%d 当前模式为开环控制模式\r\n",idx);
+        break;
+    case Ia_loop:
+        printf("电机M%d 当前模式为电流环控制模式\r\n",idx);
         break;
     case speed_loop:
         printf("电机M%d 当前模式为速度控制模式\r\n",idx);
         break;
     case position_loop:
         printf("电机M%d 当前模式为位置控制模式\r\n",idx);
-        break;    
+        break;   
+    case EncoderCalibration:
+        printf("电机M%d 当前模式为编码器校准模式\r\n",idx);
+        break;
+    case CurrentCalibration:
+        printf("电机M%d 当前模式为电流零点校准模式\r\n",idx);
+        break; 
     default:
         printf("电机M%d 未知模式\r\n",idx);
         break;

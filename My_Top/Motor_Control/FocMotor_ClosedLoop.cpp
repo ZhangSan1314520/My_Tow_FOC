@@ -113,7 +113,7 @@ void FOC_Motor::Encoder_Calibration() //编码器校准
     motor_duty_c = foc_math.duty_c;
     setPwm(); // 设置占空比
 
-    theta_temp = fmodf(theta_m, SingleTurn_Theta);// 计算当前机械角度在单圈范围内的值 (度)
+    theta_temp = fmodf(theta_no_offic, SingleTurn_Theta);// 计算当前机械角度在单圈范围内的值 (度)
     theta_temp = (theta_temp < 0) ? (theta_temp + SingleTurn_Theta) : theta_temp; // 保持机械零点角度为正值
     theta_zero = theta_temp * Motor_ExpNum;  //取最后一次的值
 }
@@ -145,6 +145,8 @@ void FOC_Motor::My_FOC_Motor_Reset()
     Calibration_Cnt = 0;//复位校准计数
     _target_location2 = rad2deg(reg_final); //复位位置为当前位置
     _target_speed = 0.0;
+    _target_Id = 0.0f;
+    _target_Iq = 0.0f;
     _pid_id->reset(); //复位pid
     _pid_iq->reset(); //复位pid
     _pid_spd->reset(); //复位pid
@@ -175,7 +177,7 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
     fudu_test = _encoder->Get_Encoder_Radian();//获取编码器角度（弧度）
     theta_no_offic = fudu_test;//未偏移的真实角度
     theta_m = wrap_to_PI(fudu_test-zero_offset);//将角度规整到 [-PI, PI) 区间
-    theta_temp = theta_m * Motor_ExpNum - theta_zero;
+    theta_temp = theta_no_offic * Motor_ExpNum - theta_zero;
     theta = wrap_to_PI(theta_temp);//获取电角度 
 
     switch (Angle_Mode)
@@ -183,8 +185,8 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
     case LPF://耗时20us
         //方式1 低通滤波 更新机械角度速度
 
-        theta_m_offic_temp = theta_m - theta_m_last; 
-        theta_m_last = theta_m; // 更新上一次的机械角度
+        theta_m_offic_temp = theta_no_offic - theta_m_last; 
+        theta_m_last = theta_no_offic; // 更新上一次的机械角度
         theta_m_offic = wrap_to_PI(theta_m_offic_temp);// 将差值规整到 [-PI, PI) 区间
         theta_m_speed = theta_m_offic*FOC_VELOCITY_UP_FREQ_HZ;//speed = 路程/t 
         theta_av_speed = speed_avg.filter(theta_m_speed);//对速度进行平均值滤波
@@ -197,25 +199,24 @@ void FOC_Motor::Update_Speed_Angle_LPFAndPLL() //更新速度和角度
     case PLL: //耗时32us
         // 方式2PLL锁相环 更新PLL锁相环的输出角度和角速度
 
-        foc_pll_run(theta_m,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
-        reg_final = _pll_reg_out; //将PLL锁相环的输出角度赋值给最终角度
+        foc_pll_run(theta_no_offic,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
+        reg_final = wrap_to_PI(_pll_reg_out - zero_offset); // 位置反馈使用软件零点 //将PLL锁相环的输出角度赋值给最终角度
         theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
         Angular_velocity_final = _pll_Angular_velocity; //将最终速度赋值给最终角速度
         break;
     case LPF_PLL://耗时37us
 
         // 方式3 测试低通+PLL锁相环 更新机械角度速度
-        theta_m_offic_temp = theta_m - theta_m_last; 
-        theta_m_last = theta_m; // 更新上一次的机械角度
+        theta_m_offic_temp = theta_no_offic - theta_m_last; 
+        theta_m_last = theta_no_offic; // 更新上一次的机械角度
         theta_m_offic = wrap_to_PI(theta_m_offic_temp);// 将差值规整到 [-PI, PI) 区间
         theta_m_speed = theta_m_offic*FOC_VELOCITY_UP_FREQ_HZ;//speed = 路程/t 
         theta_av_speed = speed_avg.filter(theta_m_speed);//对速度进行平均值滤波
         filtered_speed = speed_lpf.filter(theta_av_speed);//对速度进行低通滤波
 
-
         
-        foc_pll_run(theta_m,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
-        reg_final = _pll_reg_out; //将PLL锁相环的输出角度赋值给最终角度
+        foc_pll_run(theta_no_offic,PLL_FREQ_Dt,&_pll_reg_out,&_pll_Angular_velocity,&_pll_conf); //更新PLL锁相环的输出角度和角速度
+        reg_final = wrap_to_PI(_pll_reg_out - zero_offset); // 位置反馈使用软件零点 //将PLL锁相环的输出角度赋值给最终角度
         theta_deg_final = rad2deg(reg_final); //将弧度转换为360度
         Angular_velocity_final = _pll_Angular_velocity; //将最终速度赋值给最终角速度
         
