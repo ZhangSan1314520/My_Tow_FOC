@@ -181,13 +181,20 @@ void Task_VofaRx(void *argument)
                 vofa_update_if_changed(&Vafa_Target,  2, &m->_target_speed, NULL); //目标速度
                 break;
             case position_loop: // 位置闭环模式
-                vofa_update_if_changed(&Vafa_Location, 0, &m->_pid_loc->_kp, NULL);//位置PID
-                vofa_update_if_changed(&Vafa_Location, 1, &m->_pid_loc->_ki, NULL);
-                vofa_update_if_changed(&Vafa_Location, 2, &m->_pid_loc->_kd, NULL);
+                if(m->use_lqr_position)
+                {
+                    vofa_update_if_changed(&Vafa_IA, 0, &m->_lqr->_k1, NULL);//LQR位置环
+                    vofa_update_if_changed(&Vafa_IA, 1, &m->_lqr->_k2, NULL);
+                }else
+                {
+                    vofa_update_if_changed(&Vafa_Location, 0, &m->_pid_loc->_kp, NULL);//位置PID
+                    vofa_update_if_changed(&Vafa_Location, 1, &m->_pid_loc->_ki, NULL);
+                    vofa_update_if_changed(&Vafa_Location, 2, &m->_pid_loc->_kd, NULL);
+                    vofa_update_if_changed(&Vafa_Speed,  0, &m->_pid_spd->_kp, m);//速度PID
+                    vofa_update_if_changed(&Vafa_Speed,  1, &m->_pid_spd->_ki, m);
+                    vofa_update_if_changed(&Vafa_Speed,  2, &m->_pid_spd->_kd, m);
+                }
                 vofa_update_if_changed(&Vafa_Target,  4, &m->_target_location2, NULL); //目标位置-180°~+180°
-                vofa_update_if_changed(&Vafa_Speed,  0, &m->_pid_spd->_kp, m);//速度PID
-                vofa_update_if_changed(&Vafa_Speed,  1, &m->_pid_spd->_ki, m);
-                vofa_update_if_changed(&Vafa_Speed,  2, &m->_pid_spd->_kd, m);
                 break;
         }
         vofa_update_mode(&m->work_mode, null_mode, m); //电机模式选择      

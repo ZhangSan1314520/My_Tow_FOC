@@ -6,9 +6,9 @@ PhaseCurrent phaseCurrent1(&M1_PWM); //电流对象
 
 PID pid_iq_M1(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Iq环pid
 PID pid_id_M1(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Id环pid
-PID pid_spd_M1(0.16f,1.4f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,2.5,-2.5); //速度环pid
+PID pid_spd_M1(0.16f,2.55f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,2.5,-2.5); //速度环pid
 PID pid_loc_M1(16.0f,0.0f,0.0f,1.0f/FOC_POSITION_LOOP_FREQ_HZ,0.8,10,-10); //位置环pid
-LQR lqr_M1(0.0f,0.0f,2.5,-2.5); //位置环lqr
+LQR lqr_M1(3.5f, 0.25f,2.5,-2.5); //位置环lqr
 
 FOC_Motor M1(&M1_PWM, &encoder1,&phaseCurrent1,&pid_iq_M1,&pid_id_M1, &pid_spd_M1, &pid_loc_M1,&lqr_M1); //电机1
 
@@ -20,9 +20,9 @@ PhaseCurrent phaseCurrent2(&M2_PWM); //电流对象
 
 PID pid_iq_M2(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Iq环pid
 PID pid_id_M2(1.1f,120.0f,0.0f,1.0f/FOC_CURRRENT_LOOP_FREQ_HZ,0.8,1.01,-1.01); //Id环pid
-PID pid_spd_M2(0.16f,1.4f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,2.5,-2.5); //速度环pid
+PID pid_spd_M2(0.16f,2.55f,0.0f,1.0f/FOC_VELOCITY_LOOP_FREQ_HZ,0.8,2.5,-2.5); //速度环pid
 PID pid_loc_M2(16.0f,0.0f,0.0f,1.0f/FOC_POSITION_LOOP_FREQ_HZ,0.8,10,-10); //位置环pid
-LQR lqr_M2(0.0f,0.0f,2.5,-2.5); //位置环lqr
+LQR lqr_M2(3.5f, 0.25f,2.5,-2.5); //位置环lqr
 
 FOC_Motor M2(&M2_PWM, &encoder2,&phaseCurrent2,&pid_iq_M2,&pid_id_M2, &pid_spd_M2, &pid_loc_M2,&lqr_M2); //电机2
 
@@ -334,26 +334,6 @@ void FOC_Motor::FOC_Speed_Loop(void) //PID速度环
 }
 
 
-void FOC_Motor::FOC_Location_Loop(void) //PID位置环
-{
-    float error_loc = 0.0f;
-
-    uint8_t wave_mode_temp = 0;
-    wave_mode_temp = (uint8_t)wave_mode;
-    
-    if( (work_mode == position_loop) && (wave_mode_temp==1 ||wave_mode_temp ==2)  )
-    {
-        set_wave_mode(wave_mode_temp, FOC_POSITION_LOOP_FREQ_HZ*4, 80.0f, 0.0f);//4s一个周期
-        _target_location2 = _wave_gen.next(1);//cnt计数每次加1
-    }
-
-    error_loc = wrap_to_PI(deg2rad(_target_location2) - reg_final); //计算位置误差
-    error_loc = constraint_value(error_loc, -deg2rad(15.0f), deg2rad(15.0f)); //限制误差范围在[-15°, 15°]
-    _target_speed = _pid_loc->update(error_loc); //传入实际误差值
-}
-
-
-
 void FOC_Motor::FOC_Location_Loop()
 {
     uint8_t wave_mode_temp = (uint8_t)wave_mode;
@@ -367,16 +347,25 @@ void FOC_Motor::FOC_Location_Loop()
     float error_loc = wrap_to_PI(deg2rad(_target_location2) - reg_final);
     error_loc = constraint_value(error_loc, -deg2rad(15.0f), deg2rad(15.0f));
 
-    if(use_lqr_position)
+    if(use_lqr_position) //使用LQR位置环控制
     {
-        _lqr->_max = _pid_spd->_max; // 沿用原电流限幅
-        _lqr->_min = _pid_spd->_min;
         _target_Id = 0.0f;
         _target_Iq = _lqr->update(error_loc, -Angular_velocity_final);
         return;
     }
 
-    _target_speed = _pid_loc->update(error_loc);
+    _target_speed = _pid_loc->update(error_loc); //PID位置环控制
+
+    //以下是位置环末段加增益
+    if(_pid_loc->_ki != 0.0f || _pid_loc->_kd != 0.0f) return; //只按纯 P 控制设计
+
+    const float near_range = deg2rad(0.5f); // 末段范围 小于0.5°开始加增益
+    const float near_gain_scale = 2.0f; // 最大增益倍数
+    float weight = constraint_value(1.0f - fabsf(error_loc) / near_range, 0.0f, 1.0f);
+    float scale = 1.0f + (near_gain_scale - 1.0f) * weight;
+
+    _target_speed = constraint_value(_target_speed * scale, _pid_loc->_min, _pid_loc->_max);
+    //以上是位置环末段加增益
 }
 
 
